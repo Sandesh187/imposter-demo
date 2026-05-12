@@ -4,68 +4,85 @@ FakeIt is a mobile-first real-time party game inspired by imposter word games. O
 
 ## Features
 
-- Real-time rooms with 4-letter room codes
-- Host-controlled lobby, category selection, and replay
-- Private role assignment per device
-- Server-owned timers, clues, votes, scoring, and phase changes
-- Mobile-first React UI with animated reveals, toasts, avatars, and confetti
-- In-memory Node.js + Express + Socket.io backend
-- Deploy-ready Dockerfile
+- **Real-time Gameplay:** Low-latency rooms powered by Socket.io.
+- **Robust State Management:** Redis-backed persistence and robust reconnection support (30-second grace periods).
+- **Anti-Cheat:** Advanced logic to prevent duplicate clues, self-voting, and profanity filtering.
+- **Dynamic Content:** Over 200 topics across 10 categories, plus support for Custom Topics.
+- **Scoring & Leaderboards:** Advanced scoring logic with a dynamic post-round leaderboard.
+- **Security & Stability:** Helmet headers, Winston logging, and strict input validation.
+- **Modern UI:** React client using TailwindCSS, Lucide icons, and beautiful glassmorphic elements.
 
-## Setup
+## Architecture
 
-```bash
-npm install
-npm run dev
+FakeIt is structured as a monorepo:
+
+```text
+/
+├── client/         # React + Vite frontend
+│   ├── src/
+│   │   ├── components/ # UI components (Lobby, Phases, FinalGameOver, ui)
+│   │   ├── hooks/      # useGame hook for unified state management
+│   │   └── App.jsx     # Main game router
+│
+├── server/         # Express + Socket.io backend
+│   ├── src/
+│   │   ├── config/     # Environment configurations
+│   │   ├── events/     # Socket.io event handlers
+│   │   ├── game/       # Core game logic (Room, phases, scoring)
+│   │   ├── store/      # Persistence layer (Redis / Memory fallback)
+│   │   └── utils/      # Validation, rate limiting, and structured logging
+│   └── index.js    # Entry point
+│
+├── API.md          # Full REST and Socket API Documentation
+├── CONTRIBUTING.md # Contribution guide
+├── Dockerfile      # Multi-stage production build
+└── docker-compose.yml # Local development orchestration
 ```
 
-The client runs at `http://localhost:5173` and proxies API/socket traffic to the server at `http://localhost:3001`.
+## Setup & Development
 
-## Production
+**Requirements:**
+- Node.js 20+
+- (Optional) Docker for running Redis locally
 
-```bash
-npm install
-npm run build
-npm start
-```
+1. **Install Dependencies:**
+   ```bash
+   npm install
+   ```
 
-The server serves the built React app from `client/dist` and listens on `PORT` or `3001`.
+2. **Start Local Servers:**
+   This will start both the React frontend and the Node backend using local Memory store.
+   ```bash
+   npm run dev
+   ```
 
-## Docker
+3. **Start with Redis (Recommended for testing persistence):**
+   ```bash
+   docker-compose up
+   ```
+
+## Production Deployment
+
+The project is fully dockerized and ready for production.
 
 ```bash
 docker build -t fakeit .
-docker run -p 3001:3001 fakeit
+docker run -p 3001:3001 -e NODE_ENV=production fakeit
 ```
 
-Open `http://localhost:3001`.
+The Docker container serves both the Node API and the static React bundle over a single port.
 
-## Project Structure
+## Environment Variables
 
-```text
-/client
-  /src
-    /components
-    /hooks
-    App.jsx
-/server
-  index.js
-  gameLogic.js
-  topics.js
-package.json
-Dockerfile
-```
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | 3001 | Port for the Express server |
+| `NODE_ENV` | development | `production` enables JSON logging and static serving |
+| `REDIS_URL` | | Connection string for Redis. If missing, defaults to Memory Store |
+| `LOG_LEVEL` | info | Sets Winston logging level (`debug`, `info`, `warn`, `error`) |
+| `CLIENT_ORIGIN` | * | Comma-separated list of allowed CORS origins |
 
-## Socket Events
+## Documentation
 
-The server implements the required game events:
-
-- `create-room`, `join-room`, `player-joined`
-- `start-game`, `role-assigned`
-- `submit-clue`, `clue-received`
-- `phase-change`
-- `submit-vote`, `vote-received`
-- `reveal-results`
-- `play-again`, `player-disconnected`
-
-Additional helper events are used for reliability and UX: `room-state`, `confirm-role`, `set-category`, `submit-topic-guess`, `leave-room`, `error-message`, and `toast`.
+- **[API Documentation](./API.md):** Comprehensive details on REST endpoints and WebSocket events.
+- **[Contributing](./CONTRIBUTING.md):** Guidelines for adding features and running tests.

@@ -1,0 +1,24 @@
+services:
+  # The Node.js + React monolithic container
+  - type: web
+    name: fakeit-app
+    env: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    plan: free
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: NODE_ENV
+        value: production
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: fakeit-redis
+          property: connectionString
+
+  # The Redis store for game persistence
+  - type: redis
+    name: fakeit-redis
+    plan: free
+    ipAllowList: [] # Only accessible internally by the web service

@@ -45,7 +45,7 @@ export function Lobby({ game }) {
             </p>
           )}
           <div className="space-y-2">
-            {room.players.map((player) => (
+            {[...room.players].sort((a, b) => b.score - a.score).map((player) => (
               <PlayerRow key={player.id} player={player} />
             ))}
           </div>
@@ -60,6 +60,42 @@ export function Lobby({ game }) {
               </Button>
             ))}
           </div>
+          {room.category === "Custom" && (
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <p className="mb-2 text-xs font-black text-white/60">Custom Topics ({room.customTopics?.length || 0})</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  id="customTopicInput"
+                  placeholder="Enter a custom word"
+                  disabled={!isHost}
+                  maxLength={30}
+                  className="w-full rounded-2xl bg-white/10 px-4 py-3 text-sm font-bold text-white placeholder-white/30 outline-none transition focus:bg-white/15"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && e.target.value.trim()) {
+                      actions.addCustomTopic(e.target.value.trim());
+                      e.target.value = "";
+                    }
+                  }}
+                />
+                {isHost && (
+                  <Button 
+                    onClick={() => {
+                      const input = document.getElementById("customTopicInput");
+                      if (input.value.trim()) {
+                        actions.addCustomTopic(input.value.trim());
+                        input.value = "";
+                      }
+                    }}
+                    variant="primary"
+                    className="px-4"
+                  >
+                    Add
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </GlassCard>
 
         {isHost ? (

@@ -10,7 +10,7 @@ function ack(socket, event, payload = {}) {
 export function useGame() {
   const socket = useSocket();
   const [room, setRoom] = useState(null);
-  const [playerId, setPlayerId] = useState(null);
+  const [playerId, setPlayerId] = useState(() => localStorage.getItem("fakeit_playerId"));
   const [myRole, setMyRole] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [lastReveal, setLastReveal] = useState(null);
@@ -19,6 +19,8 @@ export function useGame() {
     setRoom(null);
     setMyRole(null);
     setLastReveal(null);
+    setPlayerId(null);
+    localStorage.removeItem("fakeit_playerId");
   }, []);
 
   const addToast = useCallback((message) => {
@@ -72,6 +74,31 @@ export function useGame() {
     };
   }, [addToast, resetLocal, socket]);
 
+  // Handle auto-reconnect when socket connects
+  useEffect(() => {
+    const onConnect = async () => {
+      const savedPlayerId = localStorage.getItem("fakeit_playerId");
+      if (savedPlayerId) {
+        const response = await ack(socket, "reconnect-session", { playerId: savedPlayerId });
+        if (response.ok && response.room) {
+          setRoom(response.room);
+          setPlayerId(response.playerId);
+        } else {
+          // Session expired or room deleted
+          resetLocal();
+        }
+      }
+    };
+
+    socket.on("connect", onConnect);
+    // If already connected when this mounts (StrictMode), run it manually
+    if (socket.connected) onConnect();
+
+    return () => {
+      socket.off("connect", onConnect);
+    };
+  }, [socket, resetLocal]);
+
   const send = useCallback(
     async (event, payload) => {
       const response = await ack(socket, event, payload);
@@ -84,6 +111,7 @@ export function useGame() {
       }
       if (response.playerId) {
         setPlayerId(response.playerId);
+        localStorage.setItem("fakeit_playerId", response.playerId);
       }
       return response;
     },
@@ -95,6 +123,7 @@ export function useGame() {
       createRoom: (playerName) => send("create-room", { playerName }),
       joinRoom: (roomCode, playerName) => send("join-room", { roomCode, playerName }),
       setCategory: (category) => send("set-category", { roomCode: room?.code, category }),
+      addCustomTopic: (topic) => send("add-custom-topic", { roomCode: room?.code, topic }),
       startGame: () => send("start-game", { roomCode: room?.code }),
       confirmRole: () => send("confirm-role", { roomCode: room?.code }),
       submitClue: (clue) => send("submit-clue", { roomCode: room?.code, clue }),
