@@ -41,13 +41,9 @@ export function RoleReveal({ game }) {
         {/* 3D Card Flip Container */}
         <div className="card-3d-container mx-auto w-full max-w-sm select-none">
           <HardwarePanel
-            onPointerDown={() => setRevealing(true)}
-            onPointerUp={() => setRevealing(false)}
-            onPointerCancel={() => setRevealing(false)}
-            onPointerLeave={() => setRevealing(false)}
+            onClick={() => setRevealing((prev) => !prev)}
             onContextMenu={(e) => e.preventDefault()}
             onDragStart={(e) => e.preventDefault()}
-            style={{ touchAction: "none" }}
             className={`cursor-pointer rounded-xl p-6 text-center ring-1 transition-all duration-500 overflow-hidden select-none ${
               shuffling ? "card-shuffle" : ""
             } ${
@@ -129,12 +125,12 @@ export function RoleReveal({ game }) {
                 </>
               )}
 
-              {/* Hold-to-peek fingerprint indicator */}
+              {/* Tap-to-peek fingerprint indicator */}
               {!isEliminated && (
                 <div className="mt-5 flex flex-col items-center gap-2">
                   <Fingerprint className={`h-8 w-8 transition-all duration-200 ${revealing ? "text-[#F5A623] scale-110 drop-shadow-[0_0_12px_rgba(245,166,35,0.8)]" : "text-white/30"}`} />
                   <p className="text-xs font-black uppercase tracking-[0.14em] text-white/45">
-                    {revealing ? "peeking..." : "hold to reveal"}
+                    {revealing ? "tap to hide" : "tap to reveal"}
                   </p>
                 </div>
               )}
