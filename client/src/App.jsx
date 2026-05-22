@@ -7,9 +7,19 @@ import { Discussion } from "./components/Discussion";
 import { Voting } from "./components/Voting";
 import { Results } from "./components/Results";
 import { FinalGameOver } from "./components/FinalGameOver";
+import { SettingsMenu } from "./components/SettingsMenu";
 import { Toasts } from "./components/Toasts";
 import { FloatingParticles, PhaseTransition, ConnectionIndicator } from "./components/ui";
 import { useGame } from "./hooks/useGame";
+import { Settings } from "lucide-react";
+
+function loadPreferences() {
+  try {
+    return JSON.parse(localStorage.getItem("fakeit_preferences")) || { music: true, sound: true };
+  } catch {
+    return { music: true, sound: true };
+  }
+}
 
 export default function App() {
   const game = useGame();
@@ -18,6 +28,8 @@ export default function App() {
   const [viewPhase, setViewPhase] = useState(actualPhase);
   const [showTransition, setShowTransition] = useState(false);
   const [transitionPhase, setTransitionPhase] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [preferences, setPreferences] = useState(loadPreferences);
   const lastHistoryPhase = useRef(null);
   const roomRef = useRef(room);
   const actionsRef = useRef(game.actions);
@@ -44,6 +56,26 @@ export default function App() {
     setShowTransition(false);
     setTransitionPhase(null);
   }, []);
+
+  const togglePreference = useCallback(
+    (key) => {
+      setPreferences((current) => {
+        const next = { ...current, [key]: !current[key] };
+        localStorage.setItem("fakeit_preferences", JSON.stringify(next));
+        game.addToast(`${key === "music" ? "Music" : "Sound"} ${next[key] ? "on" : "off"}.`);
+        return next;
+      });
+    },
+    [game]
+  );
+
+  const exitGame = useCallback(async () => {
+    await game.actions.leaveRoom();
+    setSettingsOpen(false);
+    setViewPhase("home");
+    window.history.pushState({ fakeIt: true, phase: "home" }, "", window.location.href);
+    lastHistoryPhase.current = "home";
+  }, [game.actions]);
 
   useEffect(() => {
     const state = { fakeIt: true, phase: actualPhase };
@@ -102,6 +134,24 @@ export default function App() {
         {visibleRoom?.phase === "results" && <Results game={visibleGame} />}
         {visibleRoom?.phase === "final" && <FinalGameOver game={visibleGame} />}
       </div>
+
+      <button
+        type="button"
+        onClick={() => setSettingsOpen(true)}
+        className="fixed bottom-4 left-4 z-50 grid h-12 w-12 place-items-center rounded-xl bg-[#1A1A24]/95 text-[#F5A623] shadow-hardware-btn ring-1 ring-white/10 backdrop-blur transition hover:bg-[#2A2A35]"
+        aria-label="Open settings"
+      >
+        <Settings className="h-6 w-6" />
+      </button>
+
+      <SettingsMenu
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        preferences={preferences}
+        onTogglePreference={togglePreference}
+        canExit={Boolean(room)}
+        onExitGame={exitGame}
+      />
 
       {/* Phase transition overlay */}
       {showTransition && transitionPhase && (
