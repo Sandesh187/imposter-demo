@@ -219,7 +219,8 @@ export function revealResults(room, notify) {
 
   room.history.push(room.results);
 
-  if (autoFinal) {
+  const gameEnded = Boolean(autoFinal);
+  if (gameEnded) {
     awardGamePoints(room, autoFinal);
     room.phase = "final";
     room.final = buildFinal(

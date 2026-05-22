@@ -245,10 +245,6 @@ export function createGame(store) {
     if (!activePlayers(room).some((p) => p.id === targetId)) {
       throw new GameError("Choose a remaining player.", "INVALID_TARGET");
     }
-    if (playerId === targetId) {
-      throw new GameError("You cannot vote for yourself.", "SELF_VOTE");
-    }
-
     room.votes[playerId] = targetId;
     maybeReveal(room, notify);
     return room;

@@ -82,4 +82,16 @@ describe("Room Logic", () => {
     
     vi.useRealTimers();
   });
+
+  it("allows players to vote for themselves", () => {
+    const { room, player } = game.createRoom("socket-1", "Alice");
+    game.joinRoom(room.code, "socket-2", "Bob");
+    game.joinRoom(room.code, "socket-3", "Charlie");
+    game.joinRoom(room.code, "socket-4", "Dave");
+    room.phase = "voting";
+
+    game.submitVote(room.code, player.id, player.id);
+
+    expect(room.votes[player.id]).toBe(player.id);
+  });
 });
