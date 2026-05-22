@@ -12,7 +12,7 @@ export function registerGameEvents(socket, io, game, helpers) {
   }));
 
   socket.on("confirm-role", wrapHandler(socket, ({ roomCode }, ack) => {
-    const room = game.confirmRoleAction(roomCode, socket.data.playerId);
+    const room = game.confirmRole(roomCode, socket.data.playerId);
     ack?.({ ok: true });
     if (room?.phase === "clue") {
       sendPhase(room);
@@ -22,7 +22,7 @@ export function registerGameEvents(socket, io, game, helpers) {
   }));
 
   socket.on("submit-clue", wrapHandler(socket, ({ roomCode, clue }, ack) => {
-    const room = game.submitClueAction(roomCode, socket.data.playerId, clue);
+    const room = game.submitClue(roomCode, socket.data.playerId, clue);
     ack?.({ ok: true });
     io.to(room.code).emit("clue-received", room.clues.at(-1));
     if (room.phase === "discussion") {
