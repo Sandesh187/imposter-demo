@@ -78,4 +78,23 @@ export function registerGameEvents(socket, io, game, helpers) {
     ack?.({ ok: true });
     sendPhase(room);
   }));
+
+  socket.on("kick-disconnected-player", wrapHandler(socket, ({ roomCode, targetId }, ack) => {
+    const changes = game.kickDisconnectedPlayer(roomCode, socket.data.playerId, targetId);
+    ack?.({ ok: true });
+    for (const change of changes) {
+      if (!change.room) continue;
+      io.to(change.code).emit("player-disconnected", {
+        playerId: change.removed.id,
+        playerName: change.removed.name
+      });
+      io.to(change.code).emit("toast", {
+        message: `${change.removed.name} was removed.`
+      });
+      if (change.room.phase === "results" || change.room.phase === "final") {
+        io.to(change.code).emit("reveal-results", change.room.results);
+      }
+      sendRoomState(change.room);
+    }
+  }));
 }

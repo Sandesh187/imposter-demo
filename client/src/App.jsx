@@ -77,6 +77,25 @@ export default function App() {
     lastHistoryPhase.current = "home";
   }, [game.actions]);
 
+  const copyInvite = useCallback(async () => {
+    if (!room?.code) return;
+    const url = `${window.location.origin}${window.location.pathname}?room=${room.code}`;
+    await navigator.clipboard?.writeText(url);
+    game.addToast("Join link copied.");
+  }, [game, room?.code]);
+
+  const restartRoom = useCallback(async () => {
+    await game.actions.newGame();
+    setSettingsOpen(false);
+  }, [game.actions]);
+
+  const kickDisconnected = useCallback(
+    async (targetId) => {
+      await game.actions.kickDisconnectedPlayer(targetId);
+    },
+    [game.actions]
+  );
+
   useEffect(() => {
     const state = { fakeIt: true, phase: actualPhase };
     setViewPhase(actualPhase);
@@ -151,6 +170,11 @@ export default function App() {
         onTogglePreference={togglePreference}
         canExit={Boolean(room)}
         onExitGame={exitGame}
+        room={room}
+        playerId={game.playerId}
+        onCopyInvite={copyInvite}
+        onRestartRoom={restartRoom}
+        onKickDisconnected={kickDisconnected}
       />
 
       {/* Phase transition overlay */}

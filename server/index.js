@@ -15,10 +15,11 @@ async function main() {
 
   const app = createApp(store);
   const server = createServer(app);
+  const allowedOrigins = CLIENT_ORIGIN.split(",").map((origin) => origin.trim());
 
   const io = new Server(server, {
     cors: {
-      origin: CLIENT_ORIGIN
+      origin: allowedOrigins.includes("*") ? "*" : allowedOrigins
     }
   });
 
@@ -28,7 +29,8 @@ async function main() {
   server.listen(PORT, () => {
     logger.info(`FakeIt server running on port ${PORT}`, {
       store: process.env.REDIS_URL ? "redis" : "memory",
-      rooms: store.size
+      rooms: store.size,
+      clientOrigin: CLIENT_ORIGIN
     });
   });
 }

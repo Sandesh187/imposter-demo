@@ -72,7 +72,7 @@ describe("Room Logic", () => {
     const { room, player } = game.createRoom("socket-1", "Alice");
     game.joinRoom(room.code, "socket-2", "Bob");
     
-    game.markPlayerDisconnected(player.id);
+    game.markPlayerDisconnected(player.id, "socket-1");
     
     const updatedRoom = game.getRoom(room.code);
     const updatedPlayer = updatedRoom.players.find(p => p.id === player.id);
@@ -80,6 +80,21 @@ describe("Room Logic", () => {
     expect(updatedPlayer.connected).toBe(false);
     expect(updatedPlayer.disconnectTimerId).toBeDefined();
     
+    vi.useRealTimers();
+  });
+
+  it("ignores stale disconnects from an old socket after reconnect", () => {
+    vi.useFakeTimers();
+
+    const { room, player } = game.createRoom("socket-1", "Alice");
+    game.reconnectPlayer(player.id, "socket-2");
+
+    const changes = game.markPlayerDisconnected(player.id, "socket-1");
+
+    expect(changes).toEqual([]);
+    expect(room.players[0].connected).toBe(true);
+    expect(room.players[0].socketId).toBe("socket-2");
+
     vi.useRealTimers();
   });
 
@@ -93,5 +108,25 @@ describe("Room Logic", () => {
     game.submitVote(room.code, player.id, player.id);
 
     expect(room.votes[player.id]).toBe(player.id);
+  });
+
+  it("allows the host to kick a disconnected player", () => {
+    const { room, player: host } = game.createRoom("socket-1", "Alice");
+    const { player: bob } = game.joinRoom(room.code, "socket-2", "Bob");
+    bob.connected = false;
+
+    const changes = game.kickDisconnectedPlayer(room.code, host.id, bob.id);
+
+    expect(changes[0].removed.id).toBe(bob.id);
+    expect(room.players.some((player) => player.id === bob.id)).toBe(false);
+  });
+
+  it("prevents kicking connected players", () => {
+    const { room, player: host } = game.createRoom("socket-1", "Alice");
+    const { player: bob } = game.joinRoom(room.code, "socket-2", "Bob");
+
+    expect(() => {
+      game.kickDisconnectedPlayer(room.code, host.id, bob.id);
+    }).toThrow("Only disconnected players can be kicked.");
   });
 });

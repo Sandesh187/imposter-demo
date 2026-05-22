@@ -162,6 +162,7 @@ export function createGame(store) {
     if (room.hostId !== playerId) throw new GameError("Only the host can change categories.", "NOT_HOST");
     if (!topics[category] && category !== "Custom") throw new GameError("Unknown category.", "INVALID_CATEGORY");
     room.category = category;
+    logger.info("Category changed", { roomCode: room.code, hostId: playerId, category });
     return room;
   }
 
@@ -189,6 +190,7 @@ export function createGame(store) {
     if (room.phase !== "lobby") throw new GameError("Settings can only be changed in the lobby.", "WRONG_PHASE");
     
     room.settings = { ...room.settings, ...newSettings };
+    logger.info("Room settings updated", { roomCode: room.code, hostId: playerId, settings: newSettings });
     return room;
   }
 
@@ -208,7 +210,7 @@ export function createGame(store) {
     }
     room.round = 1;
     room.final = null;
-    logger.info("Game started", { roomCode: room.code });
+    logger.info("Game started", { roomCode: room.code, hostId: playerId, players: room.players.length, category: room.category });
     return startRound(room, notify);
   }
 
@@ -246,6 +248,14 @@ export function createGame(store) {
       throw new GameError("Choose a remaining player.", "INVALID_TARGET");
     }
     room.votes[playerId] = targetId;
+    logger.info("Vote submitted", {
+      roomCode: room.code,
+      round: room.round,
+      voterId: playerId,
+      targetId,
+      voteTotal: Object.keys(room.votes).length,
+      activePlayers: activePlayers(room).length
+    });
     maybeReveal(room, notify);
     return room;
   }
@@ -265,6 +275,12 @@ export function createGame(store) {
         String(guess || "").trim().toLowerCase() ===
         String(room.topic).toLowerCase()
     };
+    logger.info("Topic guess submitted", {
+      roomCode: room.code,
+      round: room.round,
+      playerId,
+      correct: room.topicGuess.correct
+    });
     maybeReveal(room, notify);
     return room;
   }
@@ -281,6 +297,7 @@ export function createGame(store) {
       return finishGame(room, "imposter", null, "Only two players remain.", notify);
     }
     room.round += 1;
+    logger.info("Next round requested", { roomCode: room.code, hostId: playerId, round: room.round });
     return startRound(room, notify);
   }
 
@@ -305,6 +322,7 @@ export function createGame(store) {
       player.eliminated = false;
       player.eliminatedRound = null;
     }
+    logger.info("Room restarted", { roomCode: room.code, hostId: playerId, players: room.players.length });
     return room;
   }
 
@@ -317,7 +335,26 @@ export function createGame(store) {
     room.timer = null;
     room.currentTurnId = null;
     room.final = buildFinal(room, "scores", "The host ended the game.");
+    logger.info("Game ended by host", { roomCode: room.code, hostId: playerId, round: room.round });
     return room;
+  }
+
+  function kickDisconnectedPlayer(code, hostId, targetId) {
+    const room = getRoom(code);
+    if (!room) throw new GameError("Room not found.", "ROOM_NOT_FOUND", 404);
+    if (room.hostId !== hostId) throw new GameError("Only the host can kick players.", "NOT_HOST");
+
+    const target = room.players.find((player) => player.id === targetId);
+    if (!target) throw new GameError("Player not found.", "PLAYER_NOT_FOUND", 404);
+    if (target.connected) throw new GameError("Only disconnected players can be kicked.", "PLAYER_CONNECTED");
+
+    logger.info("Disconnected player kicked", {
+      roomCode: room.code,
+      hostId,
+      targetId,
+      targetName: target.name
+    });
+    return removePlayer(targetId);
   }
 
   // ── Player removal ───────────────────────────────────────
@@ -352,20 +389,37 @@ export function createGame(store) {
       if (room.hostId === playerId) {
         room.hostId = room.players[0].id;
         room.players[0].isHost = true;
+        logger.info("Host reassigned", { roomCode: code, oldHostId: playerId, newHostId: room.hostId });
       }
 
       handleDisconnectPhase(room, playerId, notify);
       changed.push({ room, code, removed });
+      logger.info("Player removed", {
+        roomCode: code,
+        playerId,
+        playerName: removed.name,
+        phase: room.phase,
+        remainingPlayers: room.players.length
+      });
     }
 
     return changed;
   }
 
-  function markPlayerDisconnected(playerId, onRemove) {
+  function markPlayerDisconnected(playerId, socketId, onRemove) {
     const changed = [];
     for (const [code, room] of store.entries()) {
       const player = room.players.find((p) => p.id === playerId);
       if (!player) continue;
+      if (player.socketId !== socketId) {
+        logger.info("Ignored stale socket disconnect", {
+          roomCode: code,
+          playerId,
+          disconnectedSocketId: socketId,
+          currentSocketId: player.socketId
+        });
+        continue;
+      }
 
       player.connected = false;
       // Start 30-second grace period
@@ -377,6 +431,7 @@ export function createGame(store) {
 
       store.set(code, room); // persist change
       changed.push({ room, code, player });
+      logger.info("Player marked disconnected", { roomCode: code, playerId, playerName: player.name });
     }
     return changed;
   }
@@ -397,6 +452,7 @@ export function createGame(store) {
         store.set(code, room);
         reconnectedRoom = room;
         reconnectedPlayer = player;
+        logger.info("Player reconnected to room", { roomCode: code, playerId, phase: room.phase });
         break;
       }
     }
@@ -424,6 +480,7 @@ export function createGame(store) {
     playAgain,
     newGame,
     endGame,
+    kickDisconnectedPlayer,
     removePlayer,
     markPlayerDisconnected,
     reconnectPlayer,

@@ -7,6 +7,7 @@ import { createApiRouter } from "./routes/api.js";
 import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CLIENT_ORIGIN } from "./config/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const clientDist = path.resolve(__dirname, "../../client/dist");
@@ -17,8 +18,8 @@ export function createApp(store) {
   // Use Helmet for security headers, but disable CSP so it doesn't break Vite/React client
   app.use(helmet({ contentSecurityPolicy: false }));
   
-  // Use proper CORS derived from env, with fallback for dev
-  const allowedOrigins = process.env.CLIENT_ORIGIN?.split(",") || ["http://localhost:5173", "http://localhost:5174"];
+  // Keep HTTP CORS aligned with Socket.io CORS for split Vercel/Render deployments.
+  const allowedOrigins = CLIENT_ORIGIN.split(",").map((origin) => origin.trim());
   app.use(cors({
     origin: allowedOrigins.includes("*") ? "*" : allowedOrigins
   }));

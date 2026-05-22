@@ -6,7 +6,7 @@ FakeIt is a mobile-first real-time party game inspired by imposter word games. O
 
 - **Real-time Gameplay:** Low-latency rooms powered by Socket.io.
 - **Robust State Management:** Redis-backed persistence and robust reconnection support (30-second grace periods).
-- **Anti-Cheat:** Advanced logic to prevent duplicate clues, self-voting, and profanity filtering.
+- **Anti-Cheat:** Advanced logic to prevent duplicate clues and profanity filtering while allowing party-friendly self-votes.
 - **Dynamic Content:** Over 200 topics across 10 categories, plus support for Custom Topics.
 - **Scoring & Leaderboards:** Advanced scoring logic with a dynamic post-round leaderboard.
 - **Security & Stability:** Helmet headers, Winston logging, and strict input validation.
@@ -81,6 +81,15 @@ The Docker container serves both the Node API and the static React bundle over a
 | `REDIS_URL` | | Connection string for Redis. If missing, defaults to Memory Store |
 | `LOG_LEVEL` | info | Sets Winston logging level (`debug`, `info`, `warn`, `error`) |
 | `CLIENT_ORIGIN` | * | Comma-separated list of allowed CORS origins |
+| `VITE_SOCKET_URL` | | Frontend Socket.io server URL. Set this in Vercel when the API is hosted separately on Render |
+
+### Vercel + Render Checklist
+
+- In Vercel, set `VITE_SOCKET_URL` to your Render backend URL, for example `https://your-render-service.onrender.com`.
+- In Render, set `CLIENT_ORIGIN` to your Vercel frontend URL. Use a comma-separated list if you have preview/custom domains.
+- If you intentionally allow any frontend origin during testing, set `CLIENT_ORIGIN=*`.
+- Redeploy the Vercel frontend after changing `VITE_SOCKET_URL`; Vite reads it at build time.
+- Keep `REDIS_URL` configured on Render if you want reconnects and rooms to survive server restarts.
 
 ## Documentation
 

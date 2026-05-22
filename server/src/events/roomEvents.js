@@ -93,7 +93,7 @@ export function registerRoomEvents(socket, io, game) {
     logger.info("Socket disconnected, starting grace period", { socketId: socket.id, playerId });
     
     // Instead of immediate removal, mark disconnected and start 30s timer
-    const changes = game.markPlayerDisconnected(playerId, (removalChanges) => {
+    const changes = game.markPlayerDisconnected(playerId, socket.id, (removalChanges) => {
       // This callback fires if the grace period expires without reconnection
       for (const change of removalChanges) {
         if (!change.room) continue;
@@ -119,4 +119,3 @@ export function registerRoomEvents(socket, io, game) {
     }
   }));
 }
-

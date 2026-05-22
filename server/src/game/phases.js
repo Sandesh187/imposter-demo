@@ -2,6 +2,7 @@ import { CLUE_SECONDS, DISCUSSION_SECONDS, VOTING_SECONDS } from "../config/inde
 import { publicPlayer } from "./Player.js";
 import { awardGamePoints, buildFinal } from "./scoring.js";
 import { topics } from "./topics.js";
+import { logger } from "../utils/logger.js";
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -69,6 +70,13 @@ export function startRound(room, notify) {
   room.usedTopics.push(room.topic);
 
   room.imposterId = randomFrom(remaining).id;
+  logger.info("Round started", {
+    roomCode: room.code,
+    round: room.round,
+    phase: room.phase,
+    category: room.category,
+    activePlayers: remaining.length
+  });
   return room;
 }
 
@@ -192,6 +200,16 @@ export function revealResults(room, notify) {
       ? "imposter"
       : null;
 
+  logger.info("Round resolved", {
+    roomCode: room.code,
+    round: room.round,
+    eliminatedId,
+    tiedVote,
+    imposterCaught,
+    remainingPlayers: remainingAfter.length,
+    finalWinner: autoFinal
+  });
+
   room.phase = "results";
   room.timer = null;
   room.currentTurnId = null;
@@ -230,6 +248,13 @@ export function revealResults(room, notify) {
         ? "The imposter was eliminated."
         : "Only two players remain."
     );
+    logger.info("Game finished from vote result", {
+      roomCode: room.code,
+      round: room.round,
+      winner: autoFinal,
+      reason: room.final.reason,
+      imposterId: room.imposterId
+    });
   }
 
   notify(room, "reveal-results");
@@ -274,6 +299,14 @@ export function finishGame(room, winner, eliminated, reason, notify) {
     : room.results;
 
   room.final = buildFinal(room, winner, reason);
+  logger.info("Game finished", {
+    roomCode: room.code,
+    round: room.round,
+    winner,
+    reason,
+    eliminatedId: eliminated?.id || null,
+    imposterId: room.imposterId
+  });
   notify(room, "reveal-results");
   return room;
 }

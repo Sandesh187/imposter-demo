@@ -1,5 +1,5 @@
-import { LogOut, Music, Settings, Volume2, X } from "lucide-react";
-import { Button, HardwarePanel } from "./ui";
+import { Copy, LogOut, Music, RefreshCcw, Settings, UserX, Volume2, X } from "lucide-react";
+import { Button, HardwarePanel, PlayerAvatar } from "./ui";
 
 function ToggleRow({ icon, label, enabled, onToggle }) {
   return (
@@ -40,9 +40,16 @@ export function SettingsMenu({
   preferences,
   onTogglePreference,
   canExit,
-  onExitGame
+  onExitGame,
+  room,
+  playerId,
+  onCopyInvite,
+  onRestartRoom,
+  onKickDisconnected
 }) {
   if (!open) return null;
+  const isHost = Boolean(room && room.hostId === playerId);
+  const disconnectedPlayers = room?.players?.filter((player) => !player.connected) || [];
 
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/65 px-4 pb-4 backdrop-blur-sm sm:items-center sm:pb-0">
@@ -81,6 +88,63 @@ export function SettingsMenu({
             onToggle={() => onTogglePreference("sound")}
           />
         </div>
+
+        {room && (
+          <div className="mt-5 space-y-3 border-t border-white/10 pt-4">
+            <Button
+              onClick={onCopyInvite}
+              variant="outline"
+              className="flex w-full items-center justify-center gap-2"
+            >
+              <Copy className="h-5 w-5" />
+              Copy Invite Link
+            </Button>
+
+            {isHost && (
+              <>
+                <Button
+                  onClick={onRestartRoom}
+                  variant="secondary"
+                  className="flex w-full items-center justify-center gap-2"
+                >
+                  <RefreshCcw className="h-5 w-5" />
+                  Restart Room
+                </Button>
+
+                <div className="rounded-xl bg-black/25 p-3 ring-1 ring-white/10">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <p className="text-sm font-black text-white">Disconnected players</p>
+                    <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-black text-white/50">
+                      {disconnectedPlayers.length}
+                    </span>
+                  </div>
+                  {disconnectedPlayers.length ? (
+                    <div className="space-y-2">
+                      {disconnectedPlayers.map((player) => (
+                        <div key={player.id} className="flex items-center gap-3 rounded-xl bg-[#111118] p-2">
+                          <PlayerAvatar player={player} size="sm" />
+                          <p className="min-w-0 flex-1 truncate text-sm font-black text-white">{player.name}</p>
+                          <button
+                            type="button"
+                            onClick={() => onKickDisconnected(player.id)}
+                            className="grid h-10 w-10 place-items-center rounded-lg bg-red-500/20 text-red-300 ring-1 ring-red-400/30 transition hover:bg-red-500 hover:text-white"
+                            aria-label={`Kick ${player.name}`}
+                          >
+                            <UserX className="h-5 w-5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="rounded-lg bg-[#111118] px-3 py-2 text-center text-xs font-bold text-white/40">
+                      No disconnected players.
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         <Button
           onClick={onExitGame}

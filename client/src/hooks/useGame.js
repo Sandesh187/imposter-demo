@@ -132,6 +132,7 @@ export function useGame() {
       playAgain: () => send("play-again", { roomCode: room?.code }),
       newGame: () => send("new-game", { roomCode: room?.code }),
       endGame: () => send("end-game", { roomCode: room?.code }),
+      kickDisconnectedPlayer: (targetId) => send("kick-disconnected-player", { roomCode: room?.code, targetId }),
       leaveRoom: async () => {
         if (room?.code) {
           await send("leave-room", { roomCode: room.code });
