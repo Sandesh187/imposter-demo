@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Home } from "./components/Home";
 import { Lobby } from "./components/Lobby";
 import { RoleReveal } from "./components/RoleReveal";
@@ -8,6 +8,7 @@ import { Voting } from "./components/Voting";
 import { Results } from "./components/Results";
 import { FinalGameOver } from "./components/FinalGameOver";
 import { Toasts } from "./components/Toasts";
+import { FloatingParticles, PhaseTransition, ConnectionIndicator } from "./components/ui";
 import { useGame } from "./hooks/useGame";
 
 export default function App() {
@@ -15,9 +16,12 @@ export default function App() {
   const { room } = game;
   const actualPhase = room?.phase || "home";
   const [viewPhase, setViewPhase] = useState(actualPhase);
+  const [showTransition, setShowTransition] = useState(false);
+  const [transitionPhase, setTransitionPhase] = useState(null);
   const lastHistoryPhase = useRef(null);
   const roomRef = useRef(room);
   const actionsRef = useRef(game.actions);
+  const prevPhaseRef = useRef(actualPhase);
 
   useEffect(() => {
     roomRef.current = room;
@@ -26,6 +30,20 @@ export default function App() {
   useEffect(() => {
     actionsRef.current = game.actions;
   }, [game.actions]);
+
+  // Phase transition animation
+  useEffect(() => {
+    if (actualPhase !== prevPhaseRef.current && actualPhase !== "home") {
+      setTransitionPhase(actualPhase);
+      setShowTransition(true);
+    }
+    prevPhaseRef.current = actualPhase;
+  }, [actualPhase]);
+
+  const handleTransitionComplete = useCallback(() => {
+    setShowTransition(false);
+    setTransitionPhase(null);
+  }, []);
 
   useEffect(() => {
     const state = { fakeIt: true, phase: actualPhase };
@@ -68,7 +86,13 @@ export default function App() {
 
   return (
     <main className="animated-bg min-h-screen text-white">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-4 py-5">
+      {/* CRT overlay for heavy spy monitor vibe */}
+      <div className="crt-overlay" />
+
+      {/* Floating particles background */}
+      <FloatingParticles />
+
+      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-4 py-5" style={{ zIndex: 1 }}>
         {(!visibleRoom || viewPhase === "home") && <Home actions={game.actions} />}
         {visibleRoom?.phase === "lobby" && <Lobby game={visibleGame} />}
         {visibleRoom?.phase === "role" && <RoleReveal game={visibleGame} />}
@@ -78,7 +102,17 @@ export default function App() {
         {visibleRoom?.phase === "results" && <Results game={visibleGame} />}
         {visibleRoom?.phase === "final" && <FinalGameOver game={visibleGame} />}
       </div>
+
+      {/* Phase transition overlay */}
+      {showTransition && transitionPhase && (
+        <PhaseTransition phase={transitionPhase} onComplete={handleTransitionComplete} />
+      )}
+
+      {/* Toast notifications */}
       <Toasts toasts={game.toasts} />
+
+      {/* Connection indicator */}
+      <ConnectionIndicator connected={game.connected} />
     </main>
   );
 }

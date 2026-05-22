@@ -6,6 +6,7 @@ export function registerRoomEvents(socket, io, game) {
     const { room, player } = game.createRoom(socket.id, playerName);
     socket.data.playerId = player.id;
     socket.join(room.code);
+    socket.join(player.id);
     ack?.({ ok: true, room: game.safeRoom(room), playerId: player.id });
     socket.emit("toast", { message: `Room ${room.code} created.` });
     io.to(room.code).emit("room-state", game.safeRoom(room));
@@ -15,6 +16,7 @@ export function registerRoomEvents(socket, io, game) {
     const { room, player } = game.joinRoom(roomCode, socket.id, playerName);
     socket.data.playerId = player.id;
     socket.join(room.code);
+    socket.join(player.id);
     ack?.({ ok: true, room: game.safeRoom(room), playerId: player.id });
     io.to(room.code).emit("player-joined", {
       playerId: player.id,
@@ -34,10 +36,14 @@ export function registerRoomEvents(socket, io, game) {
     
     socket.data.playerId = player.id;
     socket.join(room.code);
+    socket.join(player.id);
     ack?.({ ok: true, room: game.safeRoom(room), playerId: player.id });
     
     logger.info("Player reconnected", { roomCode: room.code, playerId });
     socket.emit("toast", { message: "Reconnected to game." });
+    if (room.phase === "role") {
+      socket.emit("role-assigned", game.roleFor(room, player.id));
+    }
     io.to(room.code).emit("room-state", game.safeRoom(room));
   }));
 
