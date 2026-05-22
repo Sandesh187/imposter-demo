@@ -6,20 +6,40 @@ export function RoleReveal({ game }) {
   const { room, myRole, actions } = game;
   const [revealing, setRevealing] = useState(false);
   const [shuffling, setShuffling] = useState(true);
-  const [flipped, setFlipped] = useState(false);
   const activeCount = room.activePlayerIds?.length || room.players.length;
   const readyPct = activeCount ? (room.confirmedTotal / activeCount) * 100 : 0;
   const isImposter = myRole?.role === "imposter";
   const isEliminated = myRole?.role === "eliminated";
 
-  // Shuffle animation on mount
   useEffect(() => {
     const timer = setTimeout(() => {
       setShuffling(false);
-      setTimeout(() => setFlipped(true), 100);
     }, 1200);
     return () => clearTimeout(timer);
   }, []);
+
+  function startReveal(event) {
+    if (isEliminated) return;
+    event.preventDefault();
+    setRevealing(true);
+  }
+
+  function stopReveal() {
+    setRevealing(false);
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === " " || event.key === "Enter") {
+      startReveal(event);
+    }
+  }
+
+  function handleKeyUp(event) {
+    if (event.key === " " || event.key === "Enter") {
+      event.preventDefault();
+      stopReveal();
+    }
+  }
 
   return (
     <Shell kicker="secret role" title={<span className="text-gradient-metal">Peek carefully</span>} subtitle={`${room.confirmedTotal}/${activeCount} players ready`} room={room}>
@@ -41,10 +61,19 @@ export function RoleReveal({ game }) {
         {/* 3D Card Flip Container */}
         <div className="card-3d-container mx-auto w-full max-w-sm select-none">
           <HardwarePanel
-            onClick={() => setRevealing((prev) => !prev)}
+            role={!isEliminated ? "button" : undefined}
+            tabIndex={!isEliminated ? 0 : -1}
+            aria-pressed={!isEliminated ? revealing : undefined}
+            onPointerDown={startReveal}
+            onPointerUp={stopReveal}
+            onPointerCancel={stopReveal}
+            onPointerLeave={stopReveal}
+            onBlur={stopReveal}
+            onKeyDown={handleKeyDown}
+            onKeyUp={handleKeyUp}
             onContextMenu={(e) => e.preventDefault()}
             onDragStart={(e) => e.preventDefault()}
-            className={`cursor-pointer rounded-xl p-6 text-center ring-1 transition-all duration-500 overflow-hidden select-none ${
+            className={`touch-none cursor-pointer rounded-xl p-6 text-center ring-1 transition-all duration-500 overflow-hidden select-none ${
               shuffling ? "card-shuffle" : ""
             } ${
               isImposter
@@ -130,7 +159,7 @@ export function RoleReveal({ game }) {
                 <div className="mt-5 flex flex-col items-center gap-2">
                   <Fingerprint className={`h-8 w-8 transition-all duration-200 ${revealing ? "text-[#F5A623] scale-110 drop-shadow-[0_0_12px_rgba(245,166,35,0.8)]" : "text-white/30"}`} />
                   <p className="text-xs font-black uppercase tracking-[0.14em] text-white/45">
-                    {revealing ? "tap to hide" : "tap to reveal"}
+                    {revealing ? "release to hide" : "hold to reveal"}
                   </p>
                 </div>
               )}

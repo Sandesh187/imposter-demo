@@ -48,7 +48,7 @@ export const TextInput = forwardRef(function TextInput({ className = "", ...prop
 /* ═══════════════════════════
    HARDWARE PANEL
    ═══════════════════════════ */
-export function HardwarePanel({ children, className = "", accent }) {
+export function HardwarePanel({ children, className = "", accent, ...props }) {
   const accentClasses = {
     gold: "panel-accent-gold",
     purple: "panel-accent-purple",
@@ -57,7 +57,10 @@ export function HardwarePanel({ children, className = "", accent }) {
   };
 
   return (
-    <div className={`hardware-panel rounded-2xl p-5 slide-in-up ${accentClasses[accent] || ""} ${className}`}>
+    <div
+      {...props}
+      className={`hardware-panel rounded-2xl p-5 slide-in-up ${accentClasses[accent] || ""} ${className}`}
+    >
       {children}
     </div>
   );

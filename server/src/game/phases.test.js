@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { startRound, confirmRole, submitClue, maybeReveal } from "./phases.js";
+import { startRound, confirmRole, submitClue, maybeReveal, revealResults } from "./phases.js";
 
 describe("Phases Logic", () => {
   const mockNotify = vi.fn();
@@ -15,10 +15,10 @@ describe("Phases Logic", () => {
       votingTime: 45,
     },
     players: [
-      { id: "p1", name: "Alice", eliminated: false },
-      { id: "p2", name: "Bob", eliminated: false },
-      { id: "p3", name: "Charlie", eliminated: false },
-      { id: "p4", name: "Dave", eliminated: false },
+      { id: "p1", name: "Alice", score: 0, eliminated: false },
+      { id: "p2", name: "Bob", score: 0, eliminated: false },
+      { id: "p3", name: "Charlie", score: 0, eliminated: false },
+      { id: "p4", name: "Dave", score: 0, eliminated: false },
     ],
     imposterId: null,
     phase: "lobby",
@@ -79,5 +79,65 @@ describe("Phases Logic", () => {
     
     expect(room.phase).toBe("discussion");
     expect(room.currentTurnId).toBeNull();
+  });
+
+  it("does not award points for a non-final tied elimination round", () => {
+    const room = createMockRoom();
+    room.phase = "voting";
+    room.round = 1;
+    room.topic = "Pizza";
+    room.imposterId = "p1";
+    room.votes = {
+      p1: "p2",
+      p2: "p1",
+      p3: "p4",
+      p4: "p3",
+    };
+
+    revealResults(room, mockNotify);
+
+    expect(room.phase).toBe("results");
+    expect(room.results.gameOver).toBe(false);
+    expect(room.players.map((player) => player.score)).toEqual([0, 0, 0, 0]);
+  });
+
+  it("awards crew points only when the imposter is eliminated and the game ends", () => {
+    const room = createMockRoom();
+    room.phase = "voting";
+    room.round = 1;
+    room.topic = "Pizza";
+    room.imposterId = "p1";
+    room.votes = {
+      p1: "p2",
+      p2: "p1",
+      p3: "p1",
+      p4: "p1",
+    };
+
+    revealResults(room, mockNotify);
+
+    expect(room.phase).toBe("final");
+    expect(room.final.winner).toBe("players");
+    expect(room.players.map((player) => player.score)).toEqual([0, 3, 3, 3]);
+  });
+
+  it("awards only the imposter when two players remain after elimination", () => {
+    const room = createMockRoom();
+    room.phase = "voting";
+    room.round = 2;
+    room.topic = "Pizza";
+    room.imposterId = "p1";
+    room.players.find((player) => player.id === "p4").eliminated = true;
+    room.votes = {
+      p1: "p2",
+      p2: "p3",
+      p3: "p2",
+    };
+
+    revealResults(room, mockNotify);
+
+    expect(room.phase).toBe("final");
+    expect(room.final.winner).toBe("imposter");
+    expect(room.players.map((player) => player.score)).toEqual([3, 0, 0, 0]);
   });
 });

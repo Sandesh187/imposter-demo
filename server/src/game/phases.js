@@ -196,9 +196,6 @@ export function revealResults(room, notify) {
   room.timer = null;
   room.currentTurnId = null;
 
-  // Award points for this round (passing autoFinal as winner)
-  awardGamePoints(room, autoFinal);
-
   room.results = {
     round: room.round,
     imposterId: room.imposterId,
@@ -223,6 +220,7 @@ export function revealResults(room, notify) {
   room.history.push(room.results);
 
   if (autoFinal) {
+    awardGamePoints(room, autoFinal);
     room.phase = "final";
     room.final = buildFinal(
       room,
