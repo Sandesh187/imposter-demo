@@ -39,13 +39,16 @@ export function RoleReveal({ game }) {
         </HardwarePanel>
 
         {/* 3D Card Flip Container */}
-        <div className="card-3d-container mx-auto w-full max-w-sm">
+        <div className="card-3d-container mx-auto w-full max-w-sm select-none">
           <HardwarePanel
             onPointerDown={() => setRevealing(true)}
             onPointerUp={() => setRevealing(false)}
             onPointerCancel={() => setRevealing(false)}
             onPointerLeave={() => setRevealing(false)}
-            className={`cursor-pointer rounded-xl p-6 text-center ring-1 transition-all duration-500 overflow-hidden ${
+            onContextMenu={(e) => e.preventDefault()}
+            onDragStart={(e) => e.preventDefault()}
+            style={{ touchAction: "none" }}
+            className={`cursor-pointer rounded-xl p-6 text-center ring-1 transition-all duration-500 overflow-hidden select-none ${
               shuffling ? "card-shuffle" : ""
             } ${
               isImposter
@@ -115,8 +118,10 @@ export function RoleReveal({ game }) {
                     The topic is
                   </p>
                   <p
-                    className={`mt-2 text-5xl font-black font-display text-gradient-metal transition-all duration-300 ${
-                      revealing ? "blur-0 scale-100 stamp-slam" : "blur-md scale-95 select-none"
+                    className={`mt-2 text-5xl font-black font-display transition-all duration-300 ${
+                      revealing 
+                        ? "text-gradient-metal blur-0 scale-100 stamp-slam" 
+                        : "text-zinc-600 blur-sm scale-95 select-none"
                     }`}
                   >
                     {myRole.topic}
